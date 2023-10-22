@@ -1,9 +1,10 @@
 package models
 
 import (
+	"net/http"
+
 	"github.com/hy00nc/conduit-go/internal/utils"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 type ArticleSerializer struct {
@@ -74,54 +75,100 @@ type UserResponse struct {
 	Image    string `json:"image"`
 }
 
-func (s *ArticleSerializer) Response(db *gorm.DB) ArticleResponse {
+type UserRequest struct {
+	User struct {
+		Email    string `json:"email"`
+		Bio      string `json:"bio"`
+		Image    string `json:"image"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+	} `json:"user"`
+}
+
+type ArticleRequest struct {
+	Article struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Body        string `json:"body"`
+	} `json:"article"`
+}
+
+func (s *ArticleSerializer) Response(db *gorm.DB, r *http.Request) ArticleResponse {
 	var userProfile Profile
-	db.Where("name = ?", s.Author.Name).First(&userProfile)
+	db.Where("id = ?", s.AuthorID).First(&userProfile)
 	authorSerializer := ProfileSerializer{userProfile}
+	favorited := false
+
+	userData := r.Context().Value(utils.ContextKeyUserData)
+	if userData != nil {
+		userData := userData.(User)
+		var favorite Favorite
+		db.Where(&Favorite{ArticleID: s.Article.ID, FavoritedByID: userData.ProfileID}).Find(&favorite)
+		favorited = favorite.ID != 0
+	}
+
+	var favorites []Favorite
+	db.Find(&favorites, "article_id = ?", s.Article.ID)
+	favoritesCount := len(favorites)
+
 	response := ArticleResponse{
-		Slug:           s.Slug, // FIXME: Generate slug instead
+		Slug:           s.Slug,
 		Title:          s.Title,
 		Description:    s.Description,
 		Body:           s.Body,
 		CreatedAt:      s.CreatedAt.UTC().Format("2006-01-02T15:04:05.999Z"),
 		UpdatedAt:      s.UpdatedAt.UTC().Format("2006-01-02T15:04:05.999Z"),
-		Author:         authorSerializer.Response(db),
-		Favorite:       false, // FIXME
-		FavoritesCount: 0,     // FIXME
+		Author:         authorSerializer.Response(db, r),
+		Favorite:       favorited,
+		FavoritesCount: uint(favoritesCount),
 	}
-	response.Tags = make([]string, 0)
-	// TODO: Add tags
+	tagList := s.Article.Tags
+	tagLen := len(tagList)
+	tags := make([]string, tagLen)
+	if tagList != nil {
+		for i := 0; i < len(tagList); i++ {
+			tags[i] = tagList[i].Name
+		}
+	}
+	response.Tags = tags
 	return response
 }
 
-func (s *ArticlesSerializer) Response(db *gorm.DB) []ArticleResponse {
+func (s *ArticlesSerializer) Response(db *gorm.DB, r *http.Request) []ArticleResponse {
 	response := []ArticleResponse{}
 	for _, article := range s.Articles {
 		serializer := ArticleSerializer{article}
-		response = append(response, serializer.Response(db))
+		response = append(response, serializer.Response(db, r))
 	}
 	return response
 }
 
-func (s *ProfileSerializer) Response(db *gorm.DB) ProfileResponse {
+func (s *ProfileSerializer) Response(db *gorm.DB, r *http.Request) ProfileResponse {
+	userData := r.Context().Value(utils.ContextKeyUserData)
+	following := false
+	if userData != nil {
+		userData := userData.(User)
+		var follow Follow
+		db.Where(&Follow{UserID: userData.ProfileID, FollowingID: s.Profile.ID}).Find(&follow)
+		following = (follow.ID != 0)
+	}
 	userProfile := ProfileResponse{
 		Username:  s.Name,
 		Bio:       s.Bio,
 		Image:     s.Image,
-		Following: false, // FIXME
+		Following: following,
 	}
 	return userProfile
 }
 
-func (s *UserSerializer) Response(db *gorm.DB) UserResponse {
-	var userData User
-	db.Model(&userData).Preload(clause.Associations).Where("id = ?", s.ID).First(&userData)
+func (s *UserSerializer) Response() UserResponse {
+	token, _ := utils.GetToken(s.ID)
 	userResp := UserResponse{
-		Email:    userData.Email,
-		Token:    utils.GetToken(s.ID),
-		Username: userData.Profile.Name,
-		Bio:      userData.Profile.Bio,
-		Image:    userData.Profile.Image,
+		Email:    s.Email,
+		Token:    token,
+		Username: s.Profile.Name,
+		Bio:      s.Profile.Bio,
+		Image:    s.Profile.Image,
 	}
 
 	return userResp
@@ -140,7 +187,7 @@ func (s *TagsSerializer) Response() []string {
 	return response
 }
 
-func (s *CommentSerializer) Response(db *gorm.DB) CommentResponse {
+func (s *CommentSerializer) Response(db *gorm.DB, r *http.Request) CommentResponse {
 	var userProfile Profile
 	db.Where("id = ?", s.AuthorID).First(&userProfile)
 	authorSerializer := ProfileSerializer{userProfile}
@@ -149,16 +196,16 @@ func (s *CommentSerializer) Response(db *gorm.DB) CommentResponse {
 		CreatedAt: s.CreatedAt.UTC().Format("2006-01-02T15:04:05.999Z"),
 		UpdatedAt: s.UpdatedAt.UTC().Format("2006-01-02T15:04:05.999Z"),
 		Body:      s.Body,
-		Author:    authorSerializer.Response(db),
+		Author:    authorSerializer.Response(db, r),
 	}
 	return response
 }
 
-func (s *CommentsSerializer) Response(db *gorm.DB) []CommentResponse {
+func (s *CommentsSerializer) Response(db *gorm.DB, r *http.Request) []CommentResponse {
 	response := []CommentResponse{}
 	for _, comment := range s.Comments {
 		serializer := CommentSerializer{comment}
-		response = append(response, serializer.Response(db))
+		response = append(response, serializer.Response(db, r))
 	}
 	return response
 }

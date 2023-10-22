@@ -25,6 +25,8 @@ func MigrateDB(db *gorm.DB) {
 	db.AutoMigrate(&models.User{})
 	db.AutoMigrate(&models.Tag{})
 	db.AutoMigrate(&models.Comment{})
+	db.AutoMigrate(&models.Follow{})
+	db.AutoMigrate(&models.Favorite{})
 }
 
 func GetDB() *gorm.DB {
@@ -37,40 +39,4 @@ func CloseDB(db *gorm.DB) {
 		panic("Error occurred while closing the DB.")
 	}
 	sqlDB.Close()
-}
-
-// FIXME: Remove
-func CreateTestArticles(db *gorm.DB) {
-	articles := []models.Article{
-		{
-			Slug:        "aaa",
-			Title:       "test",
-			Description: "test description",
-			Body:        "test body",
-			Author:      models.Profile{Name: "haeyoon", Bio: "This is haeyoon", Image: "https://static.productionready.io/images/smiley-cyrus.jpg"},
-			Tags:        []models.Tag{{Name: "tag1"}, {Name: "tag2"}},
-		},
-		{
-			Slug:        "eee",
-			Title:       "another",
-			Description: "another description",
-			Body:        "another body",
-			Author:      models.Profile{Name: "yoona", Bio: "This is yoona", Image: "https://static.productionready.io/images/smiley-cyrus.jpg"},
-			Tags:        []models.Tag{{Name: "tag2"}, {Name: "tag3"}},
-		},
-	}
-
-	db.Create(&articles)
-	db.Save(&articles)
-
-	comments := []models.Comment{
-		{
-			Body:      "example",
-			ArticleID: 1,
-			AuthorID:  1,
-		},
-	}
-
-	db.Create(&comments)
-	db.Save(&comments)
 }

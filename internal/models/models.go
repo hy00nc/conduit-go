@@ -12,7 +12,7 @@ type Article struct {
 	Description string
 	Body        string
 	Author      Profile
-	AuthorID    int
+	AuthorID    uint
 	Tags        []Tag `gorm:"many2many:article_tags;"`
 }
 
@@ -27,7 +27,7 @@ type User struct {
 	gorm.Model
 	Email     string `gorm:"unique"`
 	Profile   Profile
-	ProfileID int
+	ProfileID uint
 	Hash      string
 }
 
@@ -41,13 +41,28 @@ type Comment struct {
 	gorm.Model
 	Body      string
 	Article   Article
-	ArticleID int
+	ArticleID uint
 	Author    Profile
-	AuthorID  int
+	AuthorID  uint
 }
 
 type Tag struct {
 	gorm.Model
 	Name string `gorm:"unique"`
-	Slug string
+}
+
+type Follow struct {
+	gorm.Model
+	User        Profile
+	UserID      uint
+	Following   Profile
+	FollowingID uint
+}
+
+type Favorite struct {
+	gorm.Model
+	Article       Article
+	ArticleID     uint
+	FavoritedBy   Profile
+	FavoritedByID uint
 }
