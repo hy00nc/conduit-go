@@ -49,7 +49,7 @@ func jwtMiddleware(next http.Handler) http.Handler {
 			// exclude optional authentication APIs
 			if matched, _ := matchAuthOptionalRoutes(r.URL.Path); matched {
 				next.ServeHTTP(w, r)
-				return	
+				return
 			}
 			writeResponse(w, map[string]interface{}{"errors": utils.CreateInvalidResponse("Authorization Header")}, http.StatusUnauthorized)
 			return
@@ -60,13 +60,13 @@ func jwtMiddleware(next http.Handler) http.Handler {
 			writeResponse(w, map[string]interface{}{"errors": utils.CreateInvalidResponse("JWT Token")}, http.StatusUnauthorized)
 			return
 		}
-		userId := uint(claims.(jwt.MapClaims)["id"].(float64))
+		userId := claims.(jwt.MapClaims)["id"]
 
 		var userData models.User
 		db := database.GetDB()
 		db.Model(&userData).Preload(clause.Associations).First(&userData, userId)
 
-		if userId == 0 {
+		if userData.ID == 0 {
 			writeResponse(w, map[string]interface{}{"errors": utils.CreateInvalidResponse("User data")}, http.StatusUnauthorized)
 			return
 		}
