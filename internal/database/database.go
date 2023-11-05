@@ -1,21 +1,45 @@
 package database
 
 import (
+	"os"
+
 	"github.com/hy00nc/conduit-go/internal/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
 
 // Open database
 func InitDB() *gorm.DB {
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("app.db"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
 	DB = db
 	return DB
+}
+
+func InitTestDB() *gorm.DB {
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	DB = db
+	return DB
+}
+
+func RemoveDB(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		panic("Error occurred while closing the DB.")
+	}
+	sqlDB.Close()
+	err = os.Remove("test.db")
+	return err
 }
 
 func MigrateDB(db *gorm.DB) {
