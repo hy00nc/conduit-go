@@ -123,7 +123,7 @@ func RegisterProfiles(router *mux.Router) {
 	router.HandleFunc("/{username}/follow", FollowUserEndpoint).Methods("POST", "DELETE")
 }
 
-func MakeWebHandler() http.Handler {
+func MakeWebHandler(log bool) http.Handler {
 	// Create new router
 	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
@@ -138,7 +138,9 @@ func MakeWebHandler() http.Handler {
 	// router.PathPrefix("/swagger").Hander(httpSwagger.WrapHandler)
 
 	// Add middleware
-	router.Use(loggingMiddleware)
+	if log {
+		router.Use(loggingMiddleware)
+	}
 	router.Use(ignoreOptionsMiddleware)
 
 	return router

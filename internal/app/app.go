@@ -22,5 +22,5 @@ func RunServer() {
 	// ignoreOptions := handlers.IgnoreOptions()
 
 	// Start serving
-	log.Fatal(http.ListenAndServe(":8000", handlers.CORS(originsOk, headersOk, methodsOk, allowCredentials)(MakeWebHandler())))
+	log.Fatal(http.ListenAndServe(":8000", handlers.CORS(originsOk, headersOk, methodsOk, allowCredentials)(MakeWebHandler(true))))
 }
