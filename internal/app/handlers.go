@@ -17,6 +17,8 @@ import (
 	"gorm.io/gorm/clause"
 )
 
+var defaultImage = "https://static.productionready.io/images/smiley-cyrus.jpg"
+
 func RetrieveArticle(slug string) (models.Article, error) {
 	db := database.GetDB()
 	var article models.Article
@@ -250,7 +252,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		Profile: models.Profile{
 			Name:  registerValidator.User.Username,
 			Bio:   "",
-			Image: "https://static.productionready.io/images/smiley-cyrus.jpg", // default image
+			Image: defaultImage,
 		},
 		Hash: string(hash),
 	}
